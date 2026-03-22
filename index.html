@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>SPR / SOC-PE2 – Sistema de Gestão</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --bg:#0f1117; --surface:#1a1d27; --card:#1e2130;
+  --border:#2a2f45; --border-light:#242840;
+  --primary:#EE4D2D; --primary-light:#f4795f; --primary-dark:#D73211;
+  --success:#06d6a0; --success-bg:rgba(6,214,160,.12);
+  --warning:#ffb703; --warning-bg:rgba(255,183,3,.12);
+  --danger:#ef476f;  --danger-bg:rgba(239,71,111,.12);
+  --info:#38bdf8;
+  --text:#e2e8f0; --text-secondary:#94a3b8; --text-muted:#64748b;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.3); --shadow:0 4px 16px rgba(0,0,0,.4); --shadow-lg:0 10px 40px rgba(0,0,0,.5);
+  --sb-bg:#13151f; --sb-width:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;display:flex;min-height:100vh;}
+
+.sidebar{width:var(--sb-width);min-width:var(--sb-width);background:var(--sb-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;border-right:1px solid var(--border);box-shadow:4px 0 24px rgba(0,0,0,.4);}
+.sb-logo{padding:22px 18px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.sb-logo-icon{width:42px;height:42px;min-width:42px;background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(238,77,45,.4);}
+.sb-logo-text{font-size:15px;font-weight:800;color:#fff;line-height:1.2;}
+.sb-logo-sub{font-size:9px;color:var(--text-muted);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
+.sb-nav{flex:1;padding:14px 10px;overflow-y:auto;}
+.sb-section{font-size:9px;font-weight:800;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;padding:18px 10px 8px;}
+.sb-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:8px;color:var(--text-secondary);font-size:13px;font-weight:500;cursor:pointer;transition:all .18s;border-left:3px solid transparent;margin-bottom:3px;border:none;background:none;width:100%;text-align:left;}
+.sb-item:hover{background:rgba(238,77,45,.08);color:var(--text);}
+.sb-item.active{background:rgba(238,77,45,.15);color:#fff;font-weight:700;border-left:3px solid var(--primary);}
+.sb-icon{font-size:16px;width:22px;text-align:center;flex-shrink:0;}
+.sb-footer{padding:16px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);line-height:1.8;}
+.sb-footer strong{color:var(--primary);font-weight:700;}
+
+.page-wrap{margin-left:var(--sb-width);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
+.hdr-title{font-size:18px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px;}
+.hdr-r{display:flex;align-items:center;gap:12px;}
+.time-badge{font-size:12px;color:var(--text-secondary);background:var(--border-light);padding:8px 16px;border-radius:8px;font-weight:500;border:1px solid var(--border);}
+.time-badge b{color:var(--text);}
+.btn{border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
+.btn-refresh{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 4px 12px rgba(238,77,45,.3);}
+.btn-refresh:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(238,77,45,.4);}
+.btn-filter{background:var(--primary);color:#fff;}
+.btn-filter:hover{background:var(--primary-dark);transform:translateY(-1px);}
+.btn-clear{background:var(--border-light);color:var(--text-secondary);border:1px solid var(--border);}
+.btn-clear:hover{background:var(--border);color:var(--text);}
+
+.filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 32px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.filter-bar label{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;font-weight:700;}
+.filter-bar input[type=date],.filter-bar select,.filter-bar input[type=text]{background:var(--border-light);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;cursor:pointer;transition:all .2s;font-weight:500;color-scheme:dark;}
+.filter-bar input[type=date]:focus,.filter-bar select:focus,.filter-bar input[type=text]:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(238,77,45,.15);}
+.filter-bar select{min-width:140px;}
+.filter-bar input[type=text]{min-width:220px;}
+.sep{width:1px;height:24px;background:var(--border);}
+
+main{padding:32px;flex:1;}
+section{display:none;}
+section.active{display:block;}
+
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;}
+.loading-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px 48px;text-align:center;box-shadow:var(--shadow-lg);max-width:360px;width:90%;}
+.loading-logo{font-size:36px;margin-bottom:16px;}
+.loading-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.loading-sub{font-size:13px;color:var(--text-muted);margin-bottom:28px;}
+.loading-bar-wrap{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:14px;}
+.loading-bar{height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-light));border-radius:99px;width:0%;transition:width .4s ease;}
+.loading-status{font-size:12px;color:var(--text-muted);min-height:18px;}
+.loading-dots::after{content:'';animation:dots 1.4s infinite;}
+@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
+.wakeup-banner{display:none;margin-top:16px;padding:10px 14px;background:rgba(255,183,3,.1);border:1px solid rgba(255,183,3,.25);border-radius:8px;font-size:12px;color:var(--warning);line-height:1.6;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:32px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;position:relative;overflow:hidden;transition:all .3s;box-shadow:var(--shadow-sm);}
+.kpi:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);}
+.kpi-accent{position:absolute;top:0;left:0;width:4px;height:100%;background:var(--c);}
+.kpi-icon{font-size:30px;margin-bottom:12px;}
+.kpi-lbl{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px;font-weight:700;}
+.kpi-val{font-size:44px;font-weight:800;line-height:1;color:var(--c);}
+.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:8px;font-weight:500;}
+
+.sec{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:var(--text-secondary);margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.sec::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.charts-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:32px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;box-shadow:var(--shadow-sm);transition:box-shadow .3s;}
+.chart-card:hover{box-shadow:var(--shadow);}
+.chart-title{font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text);display:flex;align-items:center;gap:8px;}
+.chart-title::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;}
+.chart-wrap{position:relative;height:240px;}
+
+.tbl-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:linear-gradient(135deg,var(--primary),var(--primary-dark));}
+th{padding:14px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#fff;font-weight:700;text-align:left;}
+td{padding:10px 16px;font-size:13px;border-bottom:1px solid var(--border-light);color:var(--text);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:rgba(238,77,45,.04);}
+.td-trip{font-weight:700;color:var(--primary);}
+.tbl-footer{padding:14px 16px;border-top:1px solid var(--border);background:rgba(0,0,0,.2);display:flex;align-items:center;justify-content:space-between;}
+.tbl-info{font-size:12px;color:var(--text-muted);}
+.tbl-btn{background:var(--border-light);border:1px solid var(--border);color:var(--text-secondary);padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
+.tbl-btn:hover{background:var(--border);color:var(--text);}
+.tbl-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+.pill{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;}
+.pill-green{background:var(--success-bg);color:var(--success);}
+.pill-yellow{background:var(--warning-bg);color:var(--warning);}
+.pill-blue{background:rgba(56,189,248,.12);color:var(--info);}
+.pill-red{background:var(--danger-bg);color:var(--danger);}
+.pill-gray{background:var(--border-light);color:var(--text-muted);}
+
+/* ── Orders input ── */
+.orders-input{
+  width:88px;
+  background:var(--border-light);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:5px 8px;
+  border-radius:6px;
+  font-size:13px;
+  font-family:'Inter',sans-serif;
+  font-weight:600;
+  text-align:right;
+  outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.orders-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(238,77,45,.15);}
+.orders-input.warn{color:var(--danger);}
+
+.just-select{background:var(--border-light);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;outline:none;cursor:pointer;}
+.just-select:focus{border-color:var(--primary);}
+.mono{font-family:monospace;background:var(--border-light);padding:2px 8px;border-radius:4px;font-size:12px;color:var(--text-secondary);}
+.notif{position:fixed;top:20px;right:20px;z-index:999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;box-shadow:var(--shadow-lg);}
+.notif-ok{background:var(--success);}
+.notif-err{background:var(--danger);}
+
+@media(max-width:1200px){.charts-row{grid-template-columns:1fr 1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.charts-row{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){main{padding:20px}header{padding:14px 20px}.filter-bar{padding:10px 20px}}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-overlay">
+  <div class="loading-box">
+    <div class="loading-logo">🛒</div>
+    <div class="loading-title">SPR / SOC-PE2</div>
+    <div class="loading-sub">Carregando dados da operação<span class="loading-dots"></span></div>
+    <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar"></div></div>
+    <div class="loading-status" id="loading-status">Conectando...</div>
+    <div class="wakeup-banner" id="wakeup-banner">
+      ⏳ O servidor está acordando após um período inativo.<br>
+      Isso pode levar até <b>30 segundos</b> na primeira abertura do dia.
+    </div>
+  </div>
+</div>
+
+<nav class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">🛒</div>
+    <div>
+      <div class="sb-logo-text">SPR / SOC-PE2</div>
+      <div class="sb-logo-sub">Sistema de Operações</div>
+    </div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-section">Navegação</div>
+    <button class="sb-item active" id="nav-dashboard" onclick="showSection('dashboard')">
+      <span class="sb-icon"><i class="fas fa-chart-pie"></i></span> Dashboard
+    </button>
+    <button class="sb-item" id="nav-operacao" onclick="showSection('operacao')">
+      <span class="sb-icon"><i class="fas fa-table"></i></span> Operação
+    </button>
+  </div>
+  <div class="sb-footer">
+    <span id="data-source" style="display:block;margin-bottom:6px">Carregando...</span>
+    Desenvolvido por:<br>
+    <strong>Hikaro Joaquim</strong>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <header>
+    <div class="hdr-title" id="hdr-title"><i class="fas fa-chart-pie" style="color:var(--primary)"></i> Dashboard</div>
+    <div class="hdr-r">
+      <div class="time-badge">Google Sheets: <b>SPR / SOC-PE2</b></div>
+      <button class="btn btn-refresh" onclick="location.reload()">↻ Atualizar</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="active">
+      <div class="filter-bar" style="margin:-32px -32px 32px;border-radius:0;">
+        <label>De</label><input type="date" id="dash-data-inicio">
+        <div class="sep"></div>
+        <label>Até</label><input type="date" id="dash-data-fim">
+        <div class="sep"></div>
+        <label>Turno</label><select id="dash-turno"><option value="">Todos</option></select>
+        <div class="sep"></div>
+        <label>Destino</label><select id="dash-sortcode"><option value="">Todos</option></select>
+        <button class="btn btn-filter" onclick="applyDashboardFilters()"><i class="fas fa-filter"></i> Filtrar</button>
+        <button class="btn btn-clear" onclick="clearDashboardFilters()">✕ Limpar</button>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi" style="--c:var(--primary)"><div class="kpi-accent"></div><div class="kpi-icon">🚚</div><div class="kpi-lbl">Total de Viagens</div><div class="kpi-val" id="total-vehicles">0</div><div class="kpi-sub" id="total-percent">-</div></div>
+        <div class="kpi" style="--c:var(--success)"><div class="kpi-accent"></div><div class="kpi-icon">✅</div><div class="kpi-lbl">Carregadas</div><div class="kpi-val" id="status-concluido">0</div><div class="kpi-sub" id="concluido-percent">-</div></div>
+        <div class="kpi" style="--c:var(--danger)"><div class="kpi-accent"></div><div class="kpi-icon">⚠️</div><div class="kpi-lbl">Perdeu CPT</div><div class="kpi-val" id="status-andamento">0</div><div class="kpi-sub" id="andamento-percent">-</div></div>
+        <div class="kpi" style="--c:var(--warning)"><div class="kpi-accent"></div><div class="kpi-icon">📦</div><div class="kpi-lbl">Total de Pacotes</div><div class="kpi-val" id="below-target">0</div><div class="kpi-sub" id="target-percent">-</div></div>
+      </div>
+      <div class="sec">Análise Gráfica</div>
+      <div class="charts-row">
+        <div class="chart-card"><div class="chart-title">Viagens por Turno</div><div class="chart-wrap"><canvas id="veiculoChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Pacotes por Turno</div><div class="chart-wrap"><canvas id="turnoChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Justificativas (Perda CPT)</div><div class="chart-wrap"><canvas id="justificativaChart"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- OPERAÇÃO -->
+    <section id="operacao">
+      <div class="filter-bar" style="margin:-32px -32px 32px;border-radius:0;">
+        <label>De</label><input type="date" id="op-data-inicio">
+        <div class="sep"></div>
+        <label>Até</label><input type="date" id="op-data-fim">
+        <div class="sep"></div>
+        <label>Turno</label><select id="op-turno"><option value="">Todos</option></select>
+        <div class="sep"></div>
+        <label>Destino</label><select id="op-sortcode"><option value="">Todos</option></select>
+        <div class="sep"></div>
+        <label>Doca</label><select id="op-source"><option value="">Todas</option></select>
+        <div class="sep"></div>
+        <input type="text" id="search-trip" placeholder="🔍  Buscar Nº Viagem...">
+        <button class="btn btn-filter" onclick="applyOperacaoFilters()"><i class="fas fa-filter"></i> Filtrar</button>
+        <button class="btn btn-clear" onclick="clearOperacaoFilters()">✕ Limpar</button>
+      </div>
+      <div class="sec">Viagens</div>
+      <div class="tbl-card">
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Nº Viagem</th><th>Turno</th><th>Status</th><th>Tipo Veículo</th>
+              <th>Destino</th><th>CPT Plan</th><th>CPT Real</th><th>Pacotes</th><th>Doca</th><th>Justificativa CPT</th>
+            </tr></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <div class="tbl-footer">
+          <span class="tbl-info" id="table-info">Carregando...</span>
+          <div style="display:flex;gap:8px">
+            <button class="tbl-btn" id="btn-prev" onclick="previousPage()">← Anterior</button>
+            <button class="tbl-btn" id="btn-next" onclick="nextPage()">Próximo →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* ─── Configuração da API ─────────────────────────────────────────────── */
+const BACKEND_URL  = 'https://spr-soc-pe2-2.onrender.com';
+const API_URL      = BACKEND_URL + '/api/dados';
+const API_SAVE_URL = BACKEND_URL + '/api/salvar-justificativa';
+
+/* ─── Estado global ──────────────────────────────────────────────────── */
+let dados = [], filteredData = [], currentPage = 1;
+const itemsPerPage = 20;
+let veiculoChart = null, turnoChart = null, justificativaChart = null, totalGeral = 0;
+
+/* Status considerados "Carregadas" (espelha o Python CARREGADAS) */
+const STATUS_CARREGADAS = new Set(['Carregado', 'Carregado/Liberado', 'Finalizado']);
+
+/* ─── Mapeamento de status → pill ─────────────────────────────────────── */
+const STATUS_MAP = {
+  'Carregado':          'pill pill-green',
+  'Carregado/Liberado': 'pill pill-green',
+  'Finalizado':         'pill pill-green',
+  'Em Andamento':       'pill pill-blue',
+  'Loading':            'pill pill-yellow',
+  'Pendente':           'pill pill-yellow',
+  'Pending':            'pill pill-yellow',
+  'Cancelado':          'pill pill-red',
+  'Cancelled':          'pill pill-red',
+};
+
+/* ─── Helpers ─────────────────────────────────────────────────────────── */
+function setProgress(pct, msg) {
+  document.getElementById('loading-bar').style.width = pct + '%';
+  document.getElementById('loading-status').textContent = msg;
+}
+
+/**
+ * Converte um ALL_ROWS item (campos curtos do backend) para o objeto
+ * que o frontend usa internamente com nomes legíveis.
+ *
+ * Backend: { d, lt, vt, ep, cp, cr, sr, dest, doca, tr, ship, pct, rowNum, just }
+ * Frontend: { date_cpt, trip_number, vehicle_type_name, eta_plan, cpt_plan,
+ *             cpt_realized, trip_status, destino, doca, turno, ship,
+ *             perdeu_cpt, rowNum, justificativa }
+ */
+function mapRow(r) {
+  return {
+    date_cpt:          r.d   || '',
+    trip_number:       r.lt  || '',
+    vehicle_type_name: r.vt  || '',
+    eta_plan:          r.ep  || '',
+    cpt_plan:          r.cp  || '',
+    cpt_realized:      r.cr  || '',
+    trip_status:       r.sr  || '',
+    destino:           r.dest || '',
+    doca:              r.doca || '',
+    turno:             r.tr  || '',
+    ship:              r.ship || 0,
+    perdeu_cpt:        r.pct === 1,
+    rowNum:            r.rowNum,
+    justificativa:     r.just || '',
+  };
+}
+
+/* ─── Carregamento dos dados ─────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', async function () {
+  const wakeTimer = setTimeout(() => {
+    document.getElementById('wakeup-banner').style.display = 'block';
+  }, 4000);
+  await loadDataFromAPI();
+  clearTimeout(wakeTimer);
+  document.getElementById('search-trip').addEventListener('input', function () {
+    currentPage = 1;
+    applyOperacaoFilters();
+  });
+});
+
+async function loadDataFromAPI() {
+  try {
+    setProgress(10, 'Conectando ao servidor...');
+    const response = await fetch(API_URL);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+
+    setProgress(60, 'Processando dados...');
+    const jsonData = await response.json();
+
+    /*
+     * O backend retorna { DATES, BY_DATE, ALL_ROWS, generatedAt, rowCount }.
+     * Usamos ALL_ROWS e mapeamos os campos curtos para nomes legíveis.
+     */
+    const rawRows = Array.isArray(jsonData.ALL_ROWS) ? jsonData.ALL_ROWS : [];
+    dados = rawRows
+      .map(mapRow)
+      .filter(d => d.trip_number && d.trip_number.toString().trim() !== '');
+
+    loadSavedJustificativas();
+
+    totalGeral = dados.length;
+    filteredData = [...dados];
+
+    setProgress(90, 'Renderizando interface...');
+    document.getElementById('data-source').textContent =
+      totalGeral + ' registros · atualizado ' +
+      new Date(jsonData.generatedAt).toLocaleTimeString('pt-BR');
+
+    initializeFilters();
+    updateDashboard();
+    renderTable();
+    setProgress(100, 'Pronto!');
+    setTimeout(() => document.getElementById('loading').style.display = 'none', 400);
+  } catch (error) {
+    setProgress(0, 'Erro: ' + error.message);
+    document.getElementById('loading-status').style.color = '#ef476f';
+    document.getElementById('data-source').textContent = 'Erro na API';
+  }
+}
+
+/* ─── Filtros ─────────────────────────────────────────────────────────── */
+function initializeFilters() {
+  const turnos   = [...new Set(dados.map(d => d.turno))].filter(Boolean).sort();
+  const destinos = [...new Set(dados.map(d => d.destino))].filter(Boolean).sort();
+  const docas    = [...new Set(dados.map(d => d.doca))].filter(Boolean).sort();
+
+  ['dash-turno', 'op-turno'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">Todos</option>';
+    turnos.forEach(t => el.innerHTML += '<option value="' + t + '">' + t + '</option>');
+  });
+
+  ['dash-sortcode', 'op-sortcode'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">Todos</option>';
+    destinos.forEach(s => el.innerHTML += '<option value="' + s + '">' + s + '</option>');
+  });
+
+  const opSource = document.getElementById('op-source');
+  opSource.innerHTML = '<option value="">Todas</option>';
+  docas.forEach(s => opSource.innerHTML += '<option value="' + s + '">' + s + '</option>');
+}
+
+function showSection(sec) {
+  document.querySelectorAll('main section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById(sec).classList.add('active');
+  document.getElementById('nav-' + sec).classList.add('active');
+  const titles = {
+    dashboard: '<i class="fas fa-chart-pie" style="color:var(--primary)"></i> Dashboard',
+    operacao:  '<i class="fas fa-table" style="color:var(--primary)"></i> Operação'
+  };
+  document.getElementById('hdr-title').innerHTML = titles[sec];
+  if (sec === 'dashboard') setTimeout(updateCharts, 100);
+}
+
+function filterData(dataInicio, dataFim, turno, destino, doca, search) {
+  return dados.filter(item => {
+    const itemDate = item.date_cpt ? new Date(item.date_cpt) : null;
+    const inicio   = dataInicio ? new Date(dataInicio) : null;
+    const fim      = dataFim    ? new Date(dataFim)    : null;
+    return (
+      (!inicio   || !itemDate || itemDate >= inicio) &&
+      (!fim      || !itemDate || itemDate <= fim) &&
+      (!turno    || item.turno   === turno) &&
+      (!destino  || item.destino === destino) &&
+      (!doca     || item.doca    === doca) &&
+      (!search   || (item.trip_number && item.trip_number.toLowerCase().includes(search)))
+    );
+  });
+}
+
+function applyDashboardFilters() {
+  filteredData = filterData(
+    document.getElementById('dash-data-inicio').value,
+    document.getElementById('dash-data-fim').value,
+    document.getElementById('dash-turno').value,
+    document.getElementById('dash-sortcode').value, '', ''
+  );
+  updateDashboard();
+}
+
+function clearDashboardFilters() {
+  ['dash-data-inicio', 'dash-data-fim', 'dash-turno', 'dash-sortcode'].forEach(id =>
+    document.getElementById(id).value = '');
+  filteredData = [...dados];
+  updateDashboard();
+}
+
+function applyOperacaoFilters() {
+  filteredData = filterData(
+    document.getElementById('op-data-inicio').value,
+    document.getElementById('op-data-fim').value,
+    document.getElementById('op-turno').value,
+    document.getElementById('op-sortcode').value,
+    document.getElementById('op-source').value,
+    document.getElementById('search-trip').value.toLowerCase()
+  );
+  currentPage = 1;
+  renderTable();
+}
+
+function clearOperacaoFilters() {
+  ['op-data-inicio', 'op-data-fim', 'op-turno', 'op-sortcode', 'op-source', 'search-trip'].forEach(id =>
+    document.getElementById(id).value = '');
+  filteredData = [...dados];
+  currentPage = 1;
+  renderTable();
+}
+
+/* ─── Dashboard ──────────────────────────────────────────────────────── */
+function updateDashboard() {
+  const tot        = filteredData.length;
+  const carregadas = filteredData.filter(d => STATUS_CARREGADAS.has(d.trip_status)).length;
+  const perdeuCPT  = filteredData.filter(d => d.perdeu_cpt).length;
+  const totalShip  = filteredData.reduce((acc, d) => acc + (d.ship || 0), 0);
+
+  document.getElementById('total-vehicles').textContent  = tot.toLocaleString('pt-BR');
+  document.getElementById('total-percent').textContent   = (totalGeral > 0 ? Math.round(tot / totalGeral * 100) : 0) + '% do total';
+
+  document.getElementById('status-concluido').textContent  = carregadas.toLocaleString('pt-BR');
+  document.getElementById('concluido-percent').textContent = (tot > 0 ? Math.round(carregadas / tot * 100) : 0) + '% do filtro';
+
+  document.getElementById('status-andamento').textContent  = perdeuCPT.toLocaleString('pt-BR');
+  document.getElementById('andamento-percent').textContent = (tot > 0 ? Math.round(perdeuCPT / tot * 100) : 0) + '% do filtro';
+
+  document.getElementById('below-target').textContent  = totalShip.toLocaleString('pt-BR');
+  document.getElementById('target-percent').textContent = carregadas > 0
+    ? Math.round(filteredData.filter(d => STATUS_CARREGADAS.has(d.trip_status)).reduce((a,d)=>a+d.ship,0) / totalShip * 100) + '% em carregadas'
+    : '-';
+
+  updateCharts();
+}
+
+function updateCharts() {
+  const turnoCounts = {}, veiculoCounts = {}, justificativaCounts = {};
+
+  filteredData.forEach(d => {
+    if (d.turno) {
+      veiculoCounts[d.turno] = (veiculoCounts[d.turno] || 0) + 1;
+      turnoCounts[d.turno]   = (turnoCounts[d.turno]   || 0) + (d.ship || 0);
+    }
+    if (d.perdeu_cpt) {
+      const label = d.justificativa || 'Sem justificativa';
+      justificativaCounts[label] = (justificativaCounts[label] || 0) + 1;
+    }
+  });
+
+  if (!Object.keys(justificativaCounts).length)
+    justificativaCounts['Sem perdas de CPT'] = 1;
+
+  if (veiculoChart)       { veiculoChart.destroy();       veiculoChart = null; }
+  if (turnoChart)         { turnoChart.destroy();         turnoChart = null; }
+  if (justificativaChart) { justificativaChart.destroy(); justificativaChart = null; }
+
+  Chart.defaults.color = '#64748b';
+  Chart.defaults.font.family = "'Inter',sans-serif";
+
+  function buildBar(id, labels, values, plugId) {
+    const tot2 = values.reduce((a, b) => a + b, 0);
+    const pcts = values.map(v => tot2 > 0 ? Math.round(v / tot2 * 100) : 0);
+    return new Chart(document.getElementById(id).getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: labels.map((_, i) => i % 2 === 0 ? 'rgba(238,77,45,.85)' : 'rgba(244,121,95,.75)'),
+          borderWidth: 0, borderRadius: 8, borderSkipped: false, barPercentage: 0.55
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, layout: { padding: { top: 38 } },
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: {
+          y: { display: false, grid: { display: false } },
+          x: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { display: false }, border: { color: 'var(--border)' } }
+        }
+      },
+      plugins: [{
+        id: plugId, afterDatasetsDraw(chart) {
+          const ctx = chart.ctx;
+          chart.getDatasetMeta(0).data.forEach((bar, i) => {
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#94a3b8'; ctx.font = '11px Inter';
+            ctx.fillText('(' + pcts[i] + '%)', bar.x, bar.y - 18);
+            ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 13px Inter';
+            ctx.fillText(values[i].toLocaleString('pt-BR'), bar.x, bar.y - 4);
+            ctx.restore();
+          });
+        }
+      }]
+    });
+  }
+
+  const vLabels = Object.keys(veiculoCounts).sort();
+  veiculoChart = buildBar('veiculoChart', vLabels, vLabels.map(t => veiculoCounts[t]), 'vLbl');
+  const tLabels = Object.keys(turnoCounts).sort();
+  turnoChart   = buildBar('turnoChart',   tLabels, tLabels.map(t => turnoCounts[t]),   'tLbl');
+
+  const total = filteredData.length;
+  justificativaChart = new Chart(document.getElementById('justificativaChart').getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: Object.keys(justificativaCounts),
+      datasets: [{
+        data: Object.values(justificativaCounts),
+        backgroundColor: ['#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f59e0b'],
+        borderWidth: 3, borderColor: '#1e2130'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, layout: { padding: 20 },
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 10, font: { size: 10 }, boxWidth: 12, borderRadius: 3, useBorderRadius: true } },
+        tooltip: { backgroundColor: '#1e2130', borderColor: '#2a2f45', borderWidth: 1, titleColor: '#e2e8f0', bodyColor: '#94a3b8', padding: 12, cornerRadius: 8 }
+      }
+    },
+    plugins: [{
+      id: 'pieLbl', afterDraw(chart) {
+        const { ctx, data } = chart;
+        chart.getDatasetMeta(0).data.forEach((el, i) => {
+          const pct = total > 0 ? Math.round(data.datasets[0].data[i] / total * 100) : 0;
+          const mid = el.startAngle + (el.endAngle - el.startAngle) / 2;
+          const r   = el.outerRadius * 0.68;
+          ctx.save(); ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Inter';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(pct + '%', el.x + r * Math.cos(mid), el.y + r * Math.sin(mid));
+          ctx.restore();
+        });
+      }
+    }]
+  });
+}
+
+/* ─── Tabela de Operação ─────────────────────────────────────────────── */
+function renderTable() {
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const start      = (currentPage - 1) * itemsPerPage;
+  const pageData   = filteredData.slice(start, start + itemsPerPage);
+  const tbody      = document.getElementById('table-body');
+  tbody.innerHTML  = '';
+
+  const JUST_OPTS = ['Dentro do target', 'Falta de pacotes', 'Perfil volumoso', 'Falta de HC'];
+
+  pageData.forEach(item => {
+    const row  = document.createElement('tr');
+    const pill = STATUS_MAP[item.trip_status] || 'pill pill-gray';
+
+    const jOpts = JUST_OPTS.map(o =>
+      `<option value="${o}"${item.justificativa === o ? ' selected' : ''}>${o}</option>`
+    ).join('');
+
+    // Só mostra select de justificativa se perdeu CPT
+    const justCell = item.perdeu_cpt
+      ? `<select class="just-select" onchange="updateJustificativa('${item.trip_number}', this.value)">
+           <option value="">Selecione...</option>${jOpts}
+         </select>`
+      : `<span style="color:var(--text-muted);font-size:11px">—</span>`;
+
+    row.innerHTML =
+      `<td class="td-trip">${item.trip_number || '-'}</td>
+       <td style="color:var(--text-secondary);font-weight:600">${item.turno || '-'}</td>
+       <td><span class="${pill}">${item.trip_status || '-'}</span></td>
+       <td style="color:var(--text-secondary)">${item.vehicle_type_name || '-'}</td>
+       <td><span class="mono">${item.destino || '-'}</span></td>
+       <td style="color:var(--text-secondary)">${item.cpt_plan || '-'}</td>
+       <td style="color:${item.perdeu_cpt ? 'var(--danger)' : 'var(--text-secondary)'};font-weight:600">
+         ${item.cpt_realized || '-'}
+       </td>
+       <td style="font-weight:600">${(item.ship || 0).toLocaleString('pt-BR')}</td>
+       <td style="color:var(--text-secondary)">${item.doca || '-'}</td>
+       <td>${justCell}</td>`;
+    tbody.appendChild(row);
+  });
+
+  document.getElementById('table-info').textContent =
+    'Mostrando ' + (filteredData.length ? Math.min(filteredData.length, start + 1) : 0) +
+    '–' + Math.min(filteredData.length, start + itemsPerPage) + ' de ' + filteredData.length + ' registros';
+  document.getElementById('btn-prev').disabled = currentPage === 1;
+  document.getElementById('btn-next').disabled = currentPage >= totalPages || totalPages === 0;
+}
+
+/* ─── Justificativa ──────────────────────────────────────────────────── */
+function updateJustificativa(tripNumber, value) {
+  const item = dados.find(d => d.trip_number === tripNumber);
+  if (!item) return;
+  item.justificativa = value;
+  saveJustificativasToStorage();
+  saveJustificativa(item);
+  if (document.getElementById('dashboard').classList.contains('active')) updateCharts();
+}
+
+/**
+ * Envia SOMENTE { rowNum, text } para o backend Flask.
+ * (O endpoint /api/salvar-justificativa só aceita esses dois campos.)
+ */
+async function saveJustificativa(item) {
+  try {
+    const r = await fetch(API_SAVE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rowNum: item.rowNum, text: item.justificativa || '' })
+    });
+    const res = await r.json();
+    showNotification(res.ok ? '✅ Justificativa salva!' : '❌ Erro ao salvar', res.ok ? 'ok' : 'err');
+  } catch (e) {
+    showNotification('❌ Erro de conexão', 'err');
+  }
+}
+
+/* ─── Persistência local ─────────────────────────────────────────────── */
+function loadSavedJustificativas() {
+  try {
+    const saved = localStorage.getItem('justificativas_spr');
+    if (saved) {
+      const j = JSON.parse(saved);
+      dados.forEach(item => { if (j[item.trip_number]) item.justificativa = j[item.trip_number]; });
+    }
+  } catch (e) {}
+}
+
+function saveJustificativasToStorage() {
+  try {
+    const j = {};
+    dados.forEach(item => { if (item.justificativa) j[item.trip_number] = item.justificativa; });
+    localStorage.setItem('justificativas_spr', JSON.stringify(j));
+  } catch (e) {}
+}
+
+/* ─── UI helpers ─────────────────────────────────────────────────────── */
+function showNotification(msg, type) {
+  const n = document.createElement('div');
+  n.className = 'notif notif-' + (type === 'ok' ? 'ok' : 'err');
+  n.textContent = msg;
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 3000);
+}
+
+function previousPage() { if (currentPage > 1) { currentPage--; renderTable(); } }
+function nextPage() {
+  if (currentPage < Math.ceil(filteredData.length / itemsPerPage)) { currentPage++; renderTable(); }
+}
+</script>
+</body>
+</html>
