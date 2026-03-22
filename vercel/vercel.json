@@ -1,0 +1,17 @@
+{
+  "rewrites": [
+    { "source": "/api/data",    "destination": "/api/data.js" },
+    { "source": "/api/justify", "destination": "/api/justify.js" },
+    { "source": "/",            "destination": "/dashboard.html" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",  "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
+}

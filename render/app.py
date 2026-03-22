@@ -12,12 +12,12 @@ SHEET_NAME = 'Base'
 RANGE      = 'Base!A1:Q3000'
 
 _cache     = {'data': None, 'ts': 0}
-CACHE_TTL  = 60  # segundos (igual ao server.js)
+CACHE_TTL  = 60
 
-# Índices das colunas (mesma estrutura da aba Daily do Node.js)
+# Índices das colunas (aba Base):
 # 0:date_cpt  1:LT(Nº Viagem)  2:vehicle_type  3:eta_plan  4:cpt_plan  5:cpt_realized
-# 6:Status_trip  7:Date_SoC  8:Turno_cpt_plan  9:cpt_real_robô(CPT realizado)  10:Status_Real(Status)
-# 11:Destino(rota)  12:Shipments(Qtd)  13:Turno_Real(Turno)  14:Doca  15:Pacotes_Real  16:justificativa(Q)
+# 6:Status_trip  7:Date_SoC  8:Turno_cpt_plan  9:cpt_real_robô  10:Status_Real
+# 11:Destino  12:Shipments  13:Turno_Real  14:Doca  15:Pacotes_Real  16:justificativa(Q)
 
 CARREGADAS = {'Carregado', 'Carregado/Liberado', 'Finalizado'}
 
@@ -35,15 +35,13 @@ def get_credentials():
     return Credentials.from_service_account_file('credencial.json', scopes=scope)
 
 
-# ── Helpers (port fiel do data.js / server.js) ────────────────────────────
+# ── Helpers ────────────────────────────────────────────────────────────────
 
 def normalize_str(s):
-    """Normaliza qualquer string de data para 'YYYY-MM-DDTHH:MM:SS'."""
     if not s or str(s).strip() in ('', '.0'):
         return None
     s = str(s).strip()
     if '/' in s:
-        # "3/13/2026 23:52:00"
         parts = s.split(' ')
         date_part = parts[0]
         time_part = parts[1] if len(parts) > 1 else '00:00:00'
@@ -51,7 +49,6 @@ def normalize_str(s):
         hh, mm, *rest = time_part.split(':')
         ss = rest[0] if rest else '00'
         return f"{y}-{m.zfill(2)}-{d.zfill(2)}T{hh.zfill(2)}:{mm}:{ss}"
-    # "2026-03-14 19:00:00"
     parts = s.split(' ')
     date_part = parts[0]
     time_part = parts[1] if len(parts) > 1 else '00:00:00'
@@ -61,13 +58,11 @@ def normalize_str(s):
 
 
 def extract_time(s):
-    """Extrai 'HH:MM' de uma string de data/hora."""
     n = normalize_str(s)
     return n[11:16] if n else ''
 
 
 def perdeu_cpt(row):
-    """True se cpt_real_robô (índice 9) > cpt_plan (índice 4)."""
     robo = normalize_str(row[9] if len(row) > 9 else '')
     plan = normalize_str(row[4] if len(row) > 4 else '')
     if not robo or not plan:
@@ -76,7 +71,6 @@ def perdeu_cpt(row):
 
 
 def parse_shipments(s):
-    """Converte formato brasileiro '7.900' → 7900."""
     if not s or str(s).strip() in ('.0', '0.0', '0', ''):
         return 0
     cleaned = str(s).strip().replace('.', '').replace(',', '.')
@@ -87,30 +81,23 @@ def parse_shipments(s):
 
 
 def get_shipments(row):
-    """Pacotes_Real (índice 15) se preenchido; senão Shipments (índice 12)."""
     real = row[15] if len(row) > 15 else ''
     if real and str(real).strip() not in ('.0', '0', '0.0', ''):
         return parse_shipments(real)
     return parse_shipments(row[12] if len(row) > 12 else '')
 
 
-# ── Processamento dos dados brutos (port de processRawData no data.js) ───
+# ── Processamento ──────────────────────────────────────────────────────────
 
 def process_raw_data(all_values):
-    """
-    Recebe lista de listas (get_all_values), processa e retorna:
-    { DATES, BY_DATE, ALL_ROWS, generatedAt, rowCount }
-    """
-    rows    = all_values[1:]  # pula o cabeçalho
+    rows    = all_values[1:]
     by_date = {}
     all_rows = []
 
     for i, r in enumerate(rows):
-        # Preenche colunas faltantes com string vazia
         while len(r) < 17:
             r.append('')
 
-        # Date_SoC (índice 7) como data operacional; fallback para date_cpt (índice 0)
         date_soc = (r[7] or r[0] or '')[:10]
         if not date_soc or len(date_soc) < 10:
             continue
@@ -139,8 +126,8 @@ def process_raw_data(all_values):
             'tr':     turno,
             'ship':   ship,
             'pct':    1 if pct else 0,
-            'rowNum': i + 2,        # linha real na planilha (header=1, dados a partir de 2)
-            'just':   r[16] or '',  # Col Q — justificativa da perda de CPT
+            'rowNum': i + 2,
+            'just':   r[16] or '',
         })
 
         if date_soc not in by_date:
@@ -175,24 +162,18 @@ def process_raw_data(all_values):
     }
 
 
-# ── Rotas ─────────────────────────────────────────────────────────────────
+# ── Rotas ──────────────────────────────────────────────────────────────────
 
 @app.route('/api/dados')
 def dados():
-    """
-    Equivalente ao GET /api/data do Node.js.
-    Retorna { DATES, BY_DATE, ALL_ROWS, generatedAt, rowCount }.
-    Cache de 60 s.
-    """
     now = time.time()
     if _cache['data'] is not None and now - _cache['ts'] < CACHE_TTL:
         return jsonify(_cache['data'])
-
     try:
-        client      = gspread.authorize(get_credentials())
-        sheet       = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
-        all_values  = sheet.get_all_values()
-        result      = process_raw_data(all_values)
+        client     = gspread.authorize(get_credentials())
+        sheet      = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
+        all_values = sheet.get_all_values()
+        result     = process_raw_data(all_values)
         _cache.update({'data': result, 'ts': now})
         return jsonify(result)
     except Exception as e:
@@ -202,11 +183,6 @@ def dados():
 
 @app.route('/api/salvar-justificativa', methods=['POST', 'OPTIONS'])
 def salvar():
-    """
-    Equivalente ao POST /api/justify do Node.js.
-    Edita a célula Base!Q{rowNum} com o texto da justificativa.
-    Body: { rowNum: int, text: str }
-    """
     if request.method == 'OPTIONS':
         return '', 200
 
@@ -223,13 +199,9 @@ def salvar():
     try:
         client = gspread.authorize(get_credentials())
         ws     = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
-
-        # Edita a célula Q{rowNum} — mesma lógica do justify.js
         ws.update(f'Q{int(row_num)}', [[text]])
-
         print(f'[justify] Linha {row_num} atualizada: "{text}"')
         return jsonify({'ok': True})
-
     except Exception as e:
         print('[justify] Erro:', str(e))
         return jsonify({'success': False, 'error': str(e)}), 500
